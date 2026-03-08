@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 互動講義 V15.2 (終極防呆版)</title>
+    <title>AI 互動講義 V15.3 (絕對防禦版)</title>
     <style>
         :root {
             --primary: #2c3e50; --accent: #3498db; --success: #27ae60;
@@ -176,7 +176,7 @@
 <body>
 
 <nav>
-    <div class="logo">📚 Smart Lesson V15.2</div>
+    <div class="logo">📚 Smart Lesson V15.3</div>
     <button class="mode-switch" onclick="toggleMode()">切換: 備課 / 上課</button>
 </nav>
 
@@ -246,7 +246,7 @@
 <script>
     const synth = window.speechSynthesis || null;
     let lessonData = [];
-    const STORAGE_KEY = 'smart_lesson_data_v15_2'; // 更新 Key，確保為乾淨狀態
+    const STORAGE_KEY = 'smart_lesson_data_v15_3'; // 更新 Key，確保為乾淨狀態
     let currentUtterance = null;
     let currentVocabData = null;
     let isTeacherMode = false;
@@ -298,7 +298,7 @@
     }
 
     // ==========================================
-    // V15.2 核心修改區：直接把防呆指令寫進咒語裡
+    // V15.3 核心修改區：加入絕對防禦的防呆指令
     // ==========================================
     function generatePrompt() {
         const text = document.getElementById('raw-text').value.trim();
@@ -319,8 +319,8 @@
   }
 ]
 
-⚠️ 特別注意（防呆指令）：
-如果課文或例句中有出現雙引號對話，請務必將 JSON 裡的雙引號使用反斜線 (\\") 進行跳脫 (Escape)，或是直接改用單引號 (')，以免破壞 JSON 解析格式！
+⚠️ 絕對禁止（防潰堤指令）：
+在 JSON 的數值 (Value) 裡面，絕對不可以使用原生的雙引號 (")！如果課文或例句中有出現人物對話，請你務必將對話的引號強制轉換為『單引號 (' ')』或是『中文引號 (「」)』。只要你出現原生雙引號，程式就會崩潰！
 
 文章內容：
 ${text}`;
