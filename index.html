@@ -1,561 +1,160 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 互動講義 V15.1 (極致穩定版)</title>
-    <style>
-        :root {
-            --primary: #2c3e50; --accent: #3498db; --success: #27ae60;
-            --bg: #ecf0f1; --card-bg: #ffffff; --text: #34495e;
-            --highlight: #fff3cd; --word-hover: #e74c3c;
-        }
-
-        body {
-            font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
-            background-color: var(--bg); color: var(--text);
-            margin: 0; padding: 0; line-height: 1.6;
-        }
-
-        nav {
-            background: var(--primary); color: white; padding: 15px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;
-        }
-        .logo { font-size: 1.2rem; font-weight: bold; }
-        .mode-switch {
-            background: var(--accent); border: none; color: white;
-            padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 0.9rem;
-        }
-
-        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; padding-bottom: 100px; }
-
-        /* 老師備課區 */
-        #teacher-zone { display: none; }
-        .editor-card {
-            background: white; padding: 20px; border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px;
-        }
-        h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        
-        textarea {
-            width: 100%; height: 120px; padding: 10px;
-            border: 2px solid #bdc3c7; border-radius: 8px;
-            margin-bottom: 15px; font-size: 1rem; font-family: monospace;
-            resize: vertical;
-        }
-        textarea:focus { border-color: var(--accent); outline: none; }
-
-        #prompt-preview-area { display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px dashed #bdc3c7; margin-bottom: 15px; }
-        #prompt-output { background: #e8e8e8; color: #555; border: none; height: 120px; font-size: 0.9rem; }
-
-        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .action-btn {
-            border: none; padding: 10px 20px; border-radius: 5px;
-            cursor: pointer; font-size: 1rem; color: white; font-weight: bold;
-            transition: transform 0.1s;
-        }
-        .action-btn:active { transform: scale(0.98); }
-        .btn-gen { background: var(--accent); }
-        .btn-copy { background: var(--success); }
-        .btn-save { background: #e67e22; width: 100%; font-size: 1.2rem; }
-
-        /* 學生學習區 */
-        #student-zone { display: block; }
-        
-        /* 匯出工具列 */
-        .student-toolbar {
-            display: flex; justify-content: flex-end; margin-bottom: 15px;
-        }
-        .btn-export {
-            background: #8e44ad; color: white; border: none; padding: 8px 18px; 
-            border-radius: 20px; cursor: pointer; font-size: 0.95rem; font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: all 0.2s;
-        }
-        .btn-export:hover { background: #9b59b6; transform: translateY(-2px); }
-
-        .lesson-card {
-            background: var(--card-bg); border-radius: 12px;
-            margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            overflow: hidden; border: 1px solid #eee;
-        }
-        
-        .text-section {
-            padding: 25px; cursor: pointer; transition: background 0.2s;
-            border-bottom: 1px dashed #eee; position: relative;
-        }
-        .text-section:hover { background-color: #f7f9f9; }
-        .text-section.playing { background-color: #fff9c4; border-left: 6px solid #f1c40f; }
-        
-        .play-icon { position: absolute; right: 20px; top: 20px; font-size: 1.5rem; opacity: 0.3; }
-        .english-text { font-size: 1.4rem; font-weight: 500; color: #2c3e50; margin-bottom: 10px; padding-right: 30px; line-height: 1.6; }
-        .chinese-trans { font-size: 1.1rem; color: #7f8c8d; line-height: 1.5; }
-
-        .word-in-text {
-            display: inline-block; border-radius: 4px; padding: 0 2px;
-            transition: all 0.1s; cursor: pointer; border-bottom: 1px dotted transparent;
-        }
-        .word-in-text:hover { color: var(--word-hover); background: #fae5e5; border-bottom: 1px dotted var(--word-hover); }
-
-        .analysis-section {
-            background: #fafafa; padding: 20px; font-size: 1rem; border-top: 1px solid #eee;
-        }
-        .analysis-content ul { padding-left: 20px; margin: 5px 0; }
-        .analysis-content li { margin-bottom: 8px; }
-        .analysis-content b { color: #e67e22; }
-        
-        .vocab-section { background: #fff; padding: 15px 20px; border-top: 1px dashed #ccc; }
-        .section-label { font-size: 0.85rem; color: #95a5a6; font-weight: bold; margin-bottom: 10px; display: block; }
-        .vocab-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .vocab-chip { 
-            background: #ecf0f1; color: #2c3e50; padding: 5px 12px; border-radius: 20px; 
-            font-size: 0.95rem; cursor: pointer; border: 1px solid #bdc3c7; transition: all 0.2s;
-            display: flex; align-items: center; gap: 5px;
-        }
-        .vocab-chip:hover { background: #3498db; color: white; border-color: #3498db; transform: translateY(-2px); }
-
-        .voice-controls {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: white; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            display: flex; justify-content: center; gap: 10px; z-index: 100;
-        }
-        select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; max-width: 200px; }
-
-        /* Modal */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center;
-        }
-        .modal-card {
-            background: white; width: 90%; max-width: 450px; padding: 25px;
-            border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            position: relative; text-align: center;
-        }
-        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #999; }
-        .modal-word { font-size: 2.5rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        .modal-meaning { font-size: 1.5rem; color: #e67e22; font-weight: bold; margin-bottom: 15px; }
-        .modal-example { 
-            background: #f0f3f4; padding: 15px; border-radius: 10px; 
-            text-align: left; font-size: 1.1rem; color: #555; margin-bottom: 20px; line-height: 1.5;
-        }
-        .modal-example b { color: var(--primary); }
-
-        /* Toast */
-        #word-toast {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(44, 62, 80, 0.95); color: white;
-            padding: 12px 25px; border-radius: 30px;
-            font-size: 1.1rem; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            z-index: 2500; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s, transform 0.3s;
-            text-align: center; max-width: 90%; white-space: normal;
-        }
-        #word-toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
-        #word-toast strong { color: #f1c40f; display: block; font-size: 1.3em; margin-bottom: 5px; }
-
-        /* ==========================================
-           列印與匯出 PDF 專用排版魔法 (乾淨整潔)
-           ========================================== */
-        @media print {
-            body { background-color: white; color: black; }
-            nav, .student-toolbar, .voice-controls, .play-icon, .section-label, .modal-overlay, #word-toast {
-                display: none !important;
-            }
-            .container { max-width: 100%; margin: 0; padding: 0; }
-            .lesson-card { 
-                border: 1px solid #ccc; box-shadow: none; margin-bottom: 30px; 
-                page-break-inside: avoid; border-radius: 0;
-            }
-            .text-section, .analysis-section, .vocab-section { padding: 15px; }
-            .analysis-section { background-color: #fcfcfc; }
-            .vocab-chip { background: transparent; border: 1px solid #aaa; color: black; }
-            .word-in-text { border-bottom: none; }
-        }
-    </style>
-</head>
-<body>
-
-<nav>
-    <div class="logo">📚 Smart Lesson V15.1</div>
-    <button class="mode-switch" onclick="toggleMode()">切換: 備課 / 上課</button>
-</nav>
-
-<div class="container">
-    <div id="teacher-zone">
-        <div class="editor-card">
-            <h3>步驟 1: 輸入課文</h3>
-            <textarea id="raw-text" placeholder="請在此貼上英文課文..."></textarea>
-            <div class="btn-row">
-                <button class="action-btn btn-gen" onclick="generatePrompt()">🧙‍♂️ 生成 AI 指令</button>
-            </div>
-        </div>
-
-        <div class="editor-card" id="prompt-preview-area">
-            <h3>步驟 2: 複製指令給 AI</h3>
-            <textarea id="prompt-output" readonly></textarea>
-            <div class="btn-row">
-                <button class="action-btn btn-copy" onclick="copyPrompt()">📋 複製</button>
-                <a href="https://chat.openai.com/" target="_blank" style="margin-left:auto; color:#3498db; text-decoration:none; align-self:center;">前往 ChatGPT ↗</a>
-            </div>
-        </div>
-
-        <div class="editor-card">
-            <h3>步驟 3: 貼上 AI 回傳資料</h3>
-            <p style="font-size:0.9rem; color:#666;">系統會自動修復格式錯誤。</p>
-            <textarea id="json-input" placeholder='請貼上 [ { ... } ] 格式的資料' style="height:200px;"></textarea>
-            <button class="action-btn btn-save" onclick="saveAndRender()">💾 儲存並開始上課</button>
-        </div>
-        
-        <div style="text-align:center; margin-top:20px;">
-            <button style="background:none; border:none; color:#e74c3c; cursor:pointer; text-decoration:underline;" onclick="resetAll()">清除重置</button>
-        </div>
-    </div>
-
-    <div id="student-zone">
-        <div class="student-toolbar" id="toolbar" style="display:none;">
-            <button class="btn-export" onclick="exportToPDF()">🖨️ 匯出講義 (PDF/列印)</button>
-        </div>
-        <div id="lesson-container">
-            <div style="text-align:center; padding: 50px; color:#999;">
-                系統載入中... 若無畫面，請點擊右上方切換至「備課模式」。
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="vocab-modal" onclick="closeModal(event)">
-    <div class="modal-card">
-        <span class="close-modal" onclick="closeModal(event)">×</span>
-        <div class="modal-word" id="m-word">Word</div>
-        <div class="modal-meaning" id="m-meaning">意思</div>
-        <div class="modal-example" id="m-example">Example sentence.</div>
-        <button class="action-btn" style="background:var(--accent); width:100%" onclick="replayVocab()">🔊 再唸一次</button>
-    </div>
-</div>
-
-<div id="word-toast">
-    <strong id="toast-word">Word</strong>
-    <span id="toast-mean">...</span>
-</div>
-
-<div class="voice-controls" id="voice-controls" style="display:none;">
-    <select id="voiceSelect"></select>
-    <button class="action-btn" style="background:#e74c3c; padding:5px 15px;" onclick="stopSpeech()">⏹ 停止</button>
-</div>
-
-<script>
-    // 增加防護，避免語音模組未準備好時當機
-    const synth = window.speechSynthesis || null;
-    let lessonData = [];
-    const STORAGE_KEY = 'smart_lesson_data_v15_1'; // 更新 Key 避免舊資料干擾
-    let currentUtterance = null;
-    let currentVocabData = null;
-    let isTeacherMode = false;
-
-    window.onload = function() {
-        try {
-            loadData();
-            if (synth) {
-                initVoices();
-                if (synth.onvoiceschanged !== undefined) {
-                    synth.onvoiceschanged = initVoices;
-                }
-            }
-        } catch(e) {
-            console.error("載入錯誤:", e);
-            document.getElementById('lesson-container').innerHTML = '<div style="color:red; text-align:center; padding:20px;">啟動時發生錯誤，請按右上角切換備課模式重設。</div>';
-        }
-    };
-
-    function toggleMode() {
-        isTeacherMode = !isTeacherMode;
-        updateDisplay();
-    }
-
-    function updateDisplay() {
-        const tZone = document.getElementById('teacher-zone');
-        const sZone = document.getElementById('student-zone');
-        const vCtrl = document.getElementById('voice-controls');
-
-        if (isTeacherMode) {
-            tZone.style.display = 'block';
-            sZone.style.display = 'none';
-            vCtrl.style.display = 'none';
-            stopSpeech();
-        } else {
-            tZone.style.display = 'none';
-            sZone.style.display = 'block';
-            vCtrl.style.display = 'flex';
-            renderLesson();
-        }
-    }
-
-    function exportToPDF() {
-        if (!lessonData || lessonData.length === 0) {
-            alert("目前沒有講義資料可供匯出喔！");
-            return;
-        }
-        window.print();
-    }
-
-    function generatePrompt() {
-        const text = document.getElementById('raw-text').value.trim();
-        if (!text) return alert("請先輸入英文課文！");
-
-        const prompt = `你是台灣國中英語補教名師。請將以下課文拆解為詳細的 JSON 教學資料。
-請嚴格回傳一個純 JSON Array，不要 Markdown 標記。
-
-格式如下：
 [
-  {
-    "english": "英文段落原文",
-    "chinese": "中文翻譯",
-    "grammar": "請使用 HTML (<ul><li><b>) 排版。內容須包含：<br>1. 重要文法與句型解析<br>2. 片語與慣用語 (Idioms)<br>3. 介係詞用法<br>4. 時態說明<br>請務必詳盡解釋，並適時提供補充例句 (用 <span class='example-sent'>例句</span> 包裹)。",
-    "vocab": [
-       { "word": "單字1", "mean": "詞性. 中文意思", "ex": "英文例句。" }
-    ]
-  }
+{
+"english": "Once upon a time, there was a girl who said she was a princess.",
+"chinese": "從前，有一個女孩說她是一位公主。",
+"grammar": "重要文法與句型解析：Once upon a time 是故事開頭常見的固定說法，意思是「從前」。這個片語常用來引出童話故事。There was + 名詞 是「有……」的句型，用來表示某處或某情境中存在某人某物。此句中的 there was a girl 表示「有一個女孩」。who said she was a princess 是形容詞子句，用來修飾前面的 a girl。其中 who 指代前面的女孩，意思是「那個說自己是公主的女孩」。在 she said she was a princess 中，後面的 she was a princess 是受詞子句，作為 said 的內容。例句：There was a boy who wanted to fly.（有一個想飛的男孩。）例句：She said she was tired.（她說她累了。）片語與慣用語 (Idioms)：Once upon a time 是固定故事開場語，不可逐字直譯成一般時間片語，而是整體理解為「很久很久以前、從前」。介係詞用法：本句沒有明顯的重要介係詞用法，但需注意 once upon a time 雖然包含 upon，它在這裡是固定片語的一部分，不作一般介係詞教學處理。時態說明：全文使用過去式敘述故事。此句中的 was、said 都是過去式，表示這是已經發生過的故事內容。童話、寓言、故事常用過去式來敘述情節。",
+"vocab": [
+{
+"word": "princess",
+"mean": "n. 公主",
+"ex": "The princess wore a beautiful dress."
+},
+{
+"word": "said",
+"mean": "v. 說（say 的過去式）",
+"ex": "He said hello to his teacher."
+},
+{
+"word": "girl",
+"mean": "n. 女孩",
+"ex": "The girl is reading a storybook."
+}
 ]
-
-文章內容：
-${text}`;
-        document.getElementById('prompt-preview-area').style.display = 'block';
-        document.getElementById('prompt-output').value = prompt;
-        document.getElementById('prompt-preview-area').scrollIntoView({behavior: "smooth"});
-    }
-
-    function copyPrompt() {
-        navigator.clipboard.writeText(document.getElementById('prompt-output').value).then(() => {
-            alert("指令已複製！");
-        });
-    }
-
-    function saveAndRender() {
-        let inputStr = document.getElementById('json-input').value.trim();
-        if(!inputStr) return alert("請貼上資料！");
-        if (inputStr.includes("你是台灣國中英語補教名師")) return alert("⛔ 貼錯了！您貼到指令了。");
-
-        try {
-            const jsonMatch = inputStr.match(/\[\s*\{[\s\S]*\}\s*\]/);
-            if (!jsonMatch) throw new Error("找不到有效的 JSON 結構。");
-            
-            let cleanJson = jsonMatch[0].replace(/\\\s*(\r\n|\n|\r)/g, "");
-            const data = JSON.parse(cleanJson);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            lessonData = data;
-            
-            alert("✅ 成功！開始上課！");
-            isTeacherMode = false;
-            updateDisplay();
-        } catch (e) {
-            alert("⚠️ 解析失敗，請確認 AI 回傳格式正確。");
-        }
-    }
-
-    function loadData() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            try {
-                lessonData = JSON.parse(saved);
-                isTeacherMode = false;
-            } catch(e) {
-                isTeacherMode = true;
-            }
-        } else {
-            isTeacherMode = true;
-        }
-        updateDisplay();
-    }
-
-    function resetAll() {
-        if(confirm("確定清除所有資料？")) {
-            localStorage.removeItem(STORAGE_KEY);
-            location.reload();
-        }
-    }
-
-    function renderLesson() {
-        const container = document.getElementById('lesson-container');
-        container.innerHTML = '';
-        const toolbar = document.getElementById('toolbar');
-
-        if (!lessonData || lessonData.length === 0) {
-            toolbar.style.display = 'none';
-            container.innerHTML = '<div style="text-align:center; padding: 50px; color:#999;">尚無資料，請先備課。</div>';
-            return;
-        }
-        toolbar.style.display = 'flex';
-
-        lessonData.forEach((item) => {
-            const card = document.createElement('div');
-            card.className = 'lesson-card';
-            
-            let vocabHtml = '';
-            if (item.vocab && item.vocab.length > 0) {
-                const chips = item.vocab.map(v => {
-                    const safeWord = escapeJs(v.word);
-                    const safeMean = escapeJs(v.mean);
-                    const safeEx = escapeJs(v.ex);
-                    return `<span class="vocab-chip" onclick="openVocabModal('${safeWord}', '${safeMean}', '${safeEx}')">
-                        <b>${v.word}</b> <span>${v.mean.split('.')[0]}</span>
-                    </span>`;
-                }).join('');
-                vocabHtml = `<div class="vocab-section"><span class="section-label">單字學習 (點擊聽發音與例句)</span><div class="vocab-list">${chips}</div></div>`;
-            }
-
-            const processedEnglish = item.english.split(/([a-zA-Z0-9'-]+)/g).map(chunk => {
-                if (/[a-zA-Z0-9'-]+/.test(chunk)) {
-                    const safeChunk = escapeJs(chunk);
-                    return `<span class="word-in-text" onclick="playWordSmart(event, '${safeChunk}')">${chunk}</span>`;
-                }
-                return chunk;
-            }).join('');
-
-            card.innerHTML = `
-                <div class="text-section" onclick="playSectionAudio(this, '${escapeJs(item.english)}')">
-                    <div class="play-icon">🔊</div>
-                    <div class="english-text">${processedEnglish}</div>
-                    <div class="chinese-trans">${item.chinese}</div>
-                </div>
-                <div class="analysis-section">
-                    <div style="font-weight:bold; color:#2980b9; margin-bottom:10px;">💡 名師解析：</div>
-                    <div class="analysis-content">${item.grammar || '無重點解說'}</div>
-                </div>
-                ${vocabHtml}
-            `;
-            container.appendChild(card);
-        });
-    }
-
-    function escapeJs(str) {
-        if(!str) return "";
-        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
-    }
-
-    async function playWordSmart(event, word) {
-        event.stopPropagation();
-        stopSpeech();
-
-        let localVocab = null;
-        for (let section of lessonData) {
-            if (section.vocab) {
-                const match = section.vocab.find(v => v.word.toLowerCase() === word.toLowerCase());
-                if (match) { localVocab = match; break; }
-            }
-        }
-
-        if (localVocab) {
-            openVocabModal(localVocab.word, localVocab.mean, localVocab.ex);
-        } else {
-            if (synth) {
-                const utter = new SpeechSynthesisUtterance(word);
-                setVoice(utter);
-                utter.rate = 0.8;
-                synth.speak(utter);
-            }
-            showWordToast(word);
-        }
-    }
-
-    function openVocabModal(word, mean, ex) {
-        currentVocabData = { word, ex };
-        document.getElementById('m-word').innerText = word;
-        document.getElementById('m-meaning').innerText = mean;
-        document.getElementById('m-example').innerHTML = `Example: <br><b>${ex}</b>`;
-        document.getElementById('vocab-modal').style.display = 'flex';
-        stopSpeech();
-        speakVocab(word, ex);
-    }
-
-    function closeModal(e) {
-        if(e.target.id === 'vocab-modal' || e.target.classList.contains('close-modal')) {
-            document.getElementById('vocab-modal').style.display = 'none';
-            stopSpeech();
-        }
-    }
-
-    function replayVocab() {
-        if(currentVocabData) {
-            speakVocab(currentVocabData.word, currentVocabData.ex);
-        }
-    }
-
-    function speakVocab(word, ex) {
-        if (!synth) return;
-        const u1 = new SpeechSynthesisUtterance(word);
-        setVoice(u1); u1.rate = 0.8;
-        const u2 = new SpeechSynthesisUtterance(ex);
-        setVoice(u2); u2.rate = 0.9;
-        u1.onend = () => { setTimeout(() => synth.speak(u2), 300); };
-        synth.speak(u1);
-    }
-
-    async function showWordToast(word) {
-        const toast = document.getElementById('word-toast');
-        const tWord = document.querySelector('#word-toast strong');
-        const tMean = document.querySelector('#word-toast span');
-        
-        tWord.innerText = word;
-        tMean.innerText = "查詢中...";
-        toast.classList.add('show');
-        
-        try {
-            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh-TW`);
-            const data = await res.json();
-            if (data.responseData) {
-                tMean.innerText = data.responseData.translatedText.replace(/[!.。]/g, "");
-            } else {
-                tMean.innerText = "查無結果";
-            }
-        } catch (e) {
-            tMean.innerText = "網路錯誤";
-        }
-        setTimeout(() => { toast.classList.remove('show'); }, 3000);
-    }
-
-    function initVoices() {
-        if (!synth) return;
-        const select = document.getElementById('voiceSelect');
-        const voices = synth.getVoices();
-        if(voices.length === 0) return;
-        select.innerHTML = '';
-        let bestIdx = 0;
-        voices.forEach((v, i) => {
-            let opt = document.createElement('option');
-            opt.value = i;
-            opt.text = `${v.name.substring(0, 15)}.. (${v.lang})`;
-            select.appendChild(opt);
-            if (v.lang === 'en-US' && v.name.includes('Google')) bestIdx = i;
-        });
-        select.selectedIndex = bestIdx;
-    }
-
-    function setVoice(utter) {
-        if (!synth) return;
-        const voices = synth.getVoices();
-        const select = document.getElementById('voiceSelect');
-        if (voices.length > 0) utter.voice = voices[select.value];
-    }
-
-    function playSectionAudio(element, text) {
-        stopSpeech();
-        element.classList.add('playing');
-        if (synth) {
-            const utter = new SpeechSynthesisUtterance(text);
-            setVoice(utter);
-            utter.rate = 0.9; 
-            utter.onend = () => { element.classList.remove('playing'); };
-            currentUtterance = utter;
-            synth.speak(utter);
-        } else {
-            setTimeout(() => { element.classList.remove('playing'); }, 1000);
-        }
-    }
-
-    function stopSpeech() {
-        if (synth) synth.cancel();
-        document.querySelectorAll('.text-section').forEach(el => el.classList.remove('playing'));
-    }
-</script>
-</body>
-</html>
+},
+{
+"english": "She was quite sure. She came up with a quick way to find out.",
+"chinese": "她非常確定。她想出了一個很快就能查明真相的方法。",
+"grammar": "重要文法與句型解析：quite sure 表示「相當確定、非常確定」。quite 是副詞，用來修飾形容詞 sure。came up with 是片語動詞，意思是「想出、提出」。句型為 come up with + 點子／方法／答案。a quick way to find out 中的 to find out 是不定詞片語，用來修飾前面的 way，表示「用來查明的方法」。例句：I am quite sure he is right.（我非常確定他是對的。）例句：She came up with a good idea.（她想出一個好主意。）例句：This is a good way to learn English.（這是學英文的好方法。）片語與慣用語 (Idioms)：come up with：想出、提出。find out：查明、弄清楚、發現真相。這是常見片語，不能只把 find 當作「找到」來理解。介係詞用法：with 在 come up with 中是片語的一部分，需整體記憶。不能單獨拆成「帶著」來理解。時態說明：was、came up with 都是過去式，表示故事中當時的心理狀態與接下來採取的行動。過去式在敘事中常用來依序呈現事件。",
+"vocab": [
+{
+"word": "quite",
+"mean": "adv. 相當；非常",
+"ex": "The movie was quite interesting."
+},
+{
+"word": "sure",
+"mean": "adj. 確定的",
+"ex": "I am sure this is the right answer."
+},
+{
+"word": "quick",
+"mean": "adj. 快的；迅速的",
+"ex": "He took a quick shower before school."
+},
+{
+"word": "find out",
+"mean": "phr. 查明；弄清楚",
+"ex": "We need to find out what happened."
+}
+]
+},
+{
+"english": "She invited the princess to spend the night.",
+"chinese": "她邀請那位公主來過夜。",
+"grammar": "重要文法與句型解析：invite + 人 + to V 是重要句型，表示「邀請某人做某事」。本句的 invited the princess to spend the night 就是「邀請公主過夜」。spend the night 是固定說法，表示「過夜」。例句：My friend invited me to have dinner.（我的朋友邀請我吃晚餐。）例句：He stayed at his uncle's house and spent the night there.（他住在叔叔家並在那裡過夜。）片語與慣用語 (Idioms)：spend the night：過夜。這是很常用的生活片語。介係詞用法：本句沒有明顯的介係詞重點，但要注意 to spend 中的 to 是不定詞記號，不是介係詞。時態說明：invited 是過去式，表示她在故事中做出的邀請行動。童話故事會依照事件先後順序使用一連串過去式動詞。",
+"vocab": [
+{
+"word": "invite",
+"mean": "v. 邀請",
+"ex": "I want to invite my cousin to my party."
+},
+{
+"word": "spend",
+"mean": "v. 度過；花費",
+"ex": "We spent the afternoon at the park."
+},
+{
+"word": "night",
+"mean": "n. 夜晚",
+"ex": "The stars shine at night."
+}
+]
+},
+{
+"english": "She put a pea on the bed the princess would sleep in and stacked mattresses on top.",
+"chinese": "她把一顆豌豆放在公主要睡的床上，然後把一層層床墊疊在上面。",
+"grammar": "重要文法與句型解析：put A on B 表示「把 A 放在 B 上面」。本句中的 put a pea on the bed 就是把豌豆放在床上。the bed the princess would sleep in 中，the princess would sleep in 是關係子句省略 that 的用法，用來修飾 the bed，意思是「公主要睡的那張床」。would sleep in 在這裡表示從過去觀點看「將要睡的床」。stacked mattresses on top 表示「把床墊堆在上面」。stack 當動詞是「堆疊」。例句：She put the book on the table.（她把書放在桌上。）例句：This is the chair I sit on.（這是我坐的椅子。）例句：They stacked boxes in the corner.（他們把箱子堆在角落。）片語與慣用語 (Idioms)：on top：在上面。這裡用來表示位置。sleep in 在這句不是「睡過頭」，而是「睡在……裡面／上面」的意思，要依上下文判斷。介係詞用法：on the bed：在床上。sleep in：此處的 in 與動詞搭配，表示「在那張床上睡」。on top：表示「在最上面」。這些位置介係詞很重要，能幫助學生建立空間概念。時態說明：put 和 stacked 都是過去式。注意 put 的現在式和過去式拼字相同。would sleep 表示從過去時間點來看未來要發生的事。",
+"vocab": [
+{
+"word": "pea",
+"mean": "n. 豌豆",
+"ex": "There is a green pea on the plate."
+},
+{
+"word": "stack",
+"mean": "v. 堆疊",
+"ex": "Please stack the books neatly."
+},
+{
+"word": "mattress",
+"mean": "n. 床墊",
+"ex": "The mattress is soft and clean."
+},
+{
+"word": "top",
+"mean": "n. 頂部；上方",
+"ex": "The cat sat on top of the wall."
+}
+]
+},
+{
+"english": "\"There,\" she said. \"Only a real princess will feel that pea.\"",
+"chinese": "「好了，」她說。「只有真正的公主才會感覺得到那顆豌豆。」",
+"grammar": "重要文法與句型解析：There 在這裡不是「那裡」，而是口語中做完某事後說的「好了、行了」。要根據語境理解。Only a real princess will feel that pea. 是一個強調句，主詞是 Only a real princess。only 表示「只有」。will + 原形動詞 表示未來或推測。這裡的 will feel 表示說話者對結果的預測：真正的公主才感覺得到。例句：Only John knows the answer.（只有 John 知道答案。）例句：She will understand one day.（她總有一天會懂。）片語與慣用語 (Idioms)：口語中的 There! 常表示「好了！就這樣！」，是情境用法。a real princess：真正的公主。real 在這裡有「真正的、貨真價實的」語感。介係詞用法：本句沒有主要介係詞重點。時態說明：she said 是過去式，屬於故事敘述。引號中的 will feel 則是站在當時那個時間點，去預測接下來會發生的事，所以使用未來式。",
+"vocab": [
+{
+"word": "real",
+"mean": "adj. 真正的；真實的",
+"ex": "Is this a real diamond?"
+},
+{
+"word": "feel",
+"mean": "v. 感覺到",
+"ex": "I can feel the cold wind."
+},
+{
+"word": "only",
+"mean": "adv. 只有；僅僅",
+"ex": "Only my sister can play the piano."
+}
+]
+},
+{
+"english": "That night, they ate quail for dinner. For dessert, they had tiny square cakes with a squirt of chocolate sauce on top.",
+"chinese": "那天晚上，他們晚餐吃鵪鶉。至於甜點，他們吃了小小的方形蛋糕，上面擠了一點巧克力醬。",
+"grammar": "重要文法與句型解析：That night 是時間副詞片語，表示「那天晚上」。ate quail for dinner 中的 for dinner 表示「當作晚餐」。For dessert 是另一個固定用法，意思是「作為甜點、甜點方面」。tiny square cakes 中 tiny 和 square 都是形容詞，依序修飾 cakes。with a squirt of chocolate sauce on top 是介係詞片語，補充說明蛋糕的樣子：上面有一點巧克力醬。例句：We had fish for dinner.（我們晚餐吃魚。）例句：For dessert, I had ice cream.（甜點我吃了冰淇淋。）例句：She bought a small round cake.（她買了一個小小的圓蛋糕。）片語與慣用語 (Idioms)：for dinner：當作晚餐。for dessert：作為甜點。on top：在上面。介係詞用法：for dinner 與 for dessert 的 for 表示用途或類別。with 表示伴隨，意為「帶有……」。of chocolate sauce 中的 of 表示「……的」。on top 表示位置，在上方。時態說明：ate、had 都是過去式，表示故事中那晚的用餐情況。故事敘述常透過這些過去式動詞讓畫面逐步展開。",
+"vocab": [
+{
+"word": "quail",
+"mean": "n. 鵪鶉",
+"ex": "The family ate quail at the special dinner."
+},
+{
+"word": "dessert",
+"mean": "n. 甜點",
+"ex": "My favorite dessert is chocolate cake."
+},
+{
+"word": "tiny",
+"mean": "adj. 很小的",
+"ex": "She found a tiny shell on the beach."
+},
+{
+"word": "square",
+"mean": "adj. 正方形的",
+"ex": "The table is square, not round."
+},
+{
+"word": "sauce",
+"mean": "n. 醬汁",
+"ex": "He put tomato sauce on the pasta."
+}
+]
+},
+{
+"english": "Then the queen showed the princess to her room. The princess had to climb a ladder to get on the bed. A soft quilt was on top.",
+"chinese": "接著，王后帶公主去她的房間。公主必須爬梯子才能上床。上面鋪著一條柔軟的被子。",
+"grammar": "重要文法與句型解析：show + 人 + to + 地方 表示「帶某人去某處」或「引某人到某處」。had to + 原形動詞 表示「必須……」。這是過去式的義務表達。to get on the bed 中的 to get on 是不定詞，表示目的，「為了上床」。A soft quilt was on top. 這是簡單的主詞＋be動詞＋地點補語句型。例句：The teacher showed us to our seats.（老師帶我們到座位上。）例句：I had to finish my homework last night.（昨晚我必須完成作業。）例句：He used a chair to get the book.（他用椅子來拿那本書。）片語與慣用語 (Idioms)：show someone to + 地方：帶某人到某處。get on the bed：上床。這裡的 get on 有「上去」的意思。介係詞用法：to her room：到她的房間。on the bed：在床上。on top：在最上面。這些都是位置與方向的重要介係詞片語。時態說明：showed、had to climb、was 都是過去時間下的敘述。尤其 had to 要特別注意，它不是現在的義務，而是故事當下「必須」這麼做。",
+"vocab": [
+{
+"word":
